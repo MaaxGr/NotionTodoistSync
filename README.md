@@ -4,7 +4,7 @@ This project is work in progress. It allows to sync a notion database with todoi
 
 ## ToDo
 
-[X] Fetch Database Items from Notion  
-[ ] Fetch Database Items from Todoist  
-[ ] Synchronize Changes (Title + Checkbox)  
-[ ] Make Database configurable
+- [x] Fetch Database Items from Notion  
+- [ ] Fetch Database Items from Todoist  
+- [ ] Synchronize Changes (Title + Checkbox)  
+- [ ] Make Database configurable
