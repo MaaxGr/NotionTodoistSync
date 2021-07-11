@@ -12,7 +12,18 @@ class SyncApplication: KoinComponent {
 
     init {
         //TODO: cursor
-        val notionEntries = notionRepo.getDatabaseEntries().results
+        val queryBody = """
+            {
+                "filter": {
+                    "property": "Sync",
+                    "checkbox": {
+                        "equals": true
+                    }
+                }
+            }
+        """.trimIndent()
+
+        val notionEntries = notionRepo.getDatabaseEntries("9123f835-37e4-4c5e-afeb-3c8fb3655f44", queryBody).results
         val todoistEntries = todoistRepo.getTodoistUpdates().items
 
         val notionIdMapping = notionEntries.associateBy { it.id }
