@@ -9,6 +9,8 @@ import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.addtask.AddT
 import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.sync.TodoistSync
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.text.DateFormat
+import java.text.SimpleDateFormat
 
 class TodoistRepoImpl : TodoistRepo, KoinComponent {
 
@@ -58,11 +60,11 @@ class TodoistRepoImpl : TodoistRepo, KoinComponent {
         return response.statusCode == 204
     }
 
-    override fun createEntry(content: String, notionId: String): AddTaskResponse {
+    override fun createEntry(content: String): AddTaskResponse {
         //TODO: Prefix NotionId
         val body = mapOf(
             "content" to content,
-            "description" to notionId,
+            "description" to "",
             "project_id" to 2265619327
         )
 
@@ -70,6 +72,8 @@ class TodoistRepoImpl : TodoistRepo, KoinComponent {
             .header("Authorization", "Bearer ${todoistConfig.token}")
             .jsonBody(body)
             .responseObject<AddTaskResponse>()
+
+
 
         when(result) {
             is Result.Success -> {

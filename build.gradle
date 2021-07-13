@@ -41,7 +41,7 @@ dependencies {
     implementation 'com.charleskorn.kaml:kaml:0.26.0'
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1"
 
-    implementation 'com.github.MaaxGr:klibnotion:v1.5.2-fork4'
+    implementation 'com.github.MaaxGr:klibnotion:v1.5.2-fork5'
     //implementation 'org.jraf:klibnotion:1.5.2'
 
     implementation 'junit:junit:4.13.2'
