@@ -3,12 +3,15 @@ package com.maaxgr.todoistnotionsync
 import com.maaxgr.todoistnotionsync.interfaces.config.ConfigLoader
 import com.maaxgr.todoistnotionsync.interfaces.config.ConfigNotion
 import com.maaxgr.todoistnotionsync.interfaces.config.ConfigYaml
+import com.maaxgr.todoistnotionsync.interfaces.notionconfigdatabase.NotionConfigDatabase
+import com.maaxgr.todoistnotionsync.interfaces.notionconfigdatabase.NotionConfigDatabaseImpl
 import com.maaxgr.todoistnotionsync.interfaces.notionrepo.NotionRepo
 import com.maaxgr.todoistnotionsync.interfaces.notionrepo.NotionRepoImpl
 import com.maaxgr.todoistnotionsync.interfaces.synctable.SyncTable
 import com.maaxgr.todoistnotionsync.interfaces.synctable.SyncTableImpl
 import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.TodoistRepo
 import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.TodoistRepoImpl
+import com.maaxgr.todoistnotionsync.todoistmanager.TodoistManager
 import kotlinx.coroutines.runBlocking
 import org.jraf.klibnotion.client.Authentication
 import org.jraf.klibnotion.client.ClientConfiguration
@@ -28,6 +31,8 @@ fun main() {
             single<TodoistRepo> { TodoistRepoImpl() }
             single { NotionClient.newInstance(ClientConfiguration(Authentication(get<ConfigNotion>().token))) }
             single<SyncTable> { SyncTableImpl() }
+            single<NotionConfigDatabase> { NotionConfigDatabaseImpl() }
+            single { TodoistManager() }
         }
         modules(module)
     }

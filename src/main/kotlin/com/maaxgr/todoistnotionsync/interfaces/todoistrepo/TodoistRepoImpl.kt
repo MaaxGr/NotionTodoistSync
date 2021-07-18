@@ -6,13 +6,12 @@ import com.github.kittinunf.fuel.gson.responseObject
 import com.github.kittinunf.result.Result
 import com.maaxgr.todoistnotionsync.interfaces.config.ConfigTodoist
 import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.addtask.AddTaskResponse
+import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.getacitivty.Activity
+import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.getacitivty.Event
 import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.sync.Item
-import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.sync.TodoistSync
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.lang.Exception
-import java.text.DateFormat
-import java.text.SimpleDateFormat
 
 class TodoistRepoImpl : TodoistRepo, KoinComponent {
 
@@ -92,6 +91,21 @@ class TodoistRepoImpl : TodoistRepo, KoinComponent {
         when(result) {
             is Result.Success -> {
                 return result.value
+            }
+            is Result.Failure -> {
+                throw result.error
+            }
+        }
+    }
+
+    override fun readActivity(limit: Int, offset: Int): List<Event> {
+        val (request, response, result) = Fuel.get("https://api.todoist.com/sync/v8/activity/get?limit=$limit&offset=$offset")
+            .header("Authorization", "Bearer ${todoistConfig.token}")
+            .responseObject<Activity>()
+
+        when(result) {
+            is Result.Success -> {
+                return result.value.events
             }
             is Result.Failure -> {
                 throw result.error

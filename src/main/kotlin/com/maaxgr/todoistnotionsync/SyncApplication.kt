@@ -1,10 +1,13 @@
 package com.maaxgr.todoistnotionsync
 
+import com.maaxgr.todoistnotionsync.interfaces.notionconfigdatabase.NotionConfigDatabase
 import com.maaxgr.todoistnotionsync.interfaces.notionrepo.NotionRepo
 import com.maaxgr.todoistnotionsync.interfaces.notionrepo.databasequery.Result
 import com.maaxgr.todoistnotionsync.interfaces.synctable.SyncTable
 import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.TodoistRepo
+import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.getacitivty.Event
 import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.sync.Item
+import com.maaxgr.todoistnotionsync.todoistmanager.TodoistManager
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.text.SimpleDateFormat
@@ -17,16 +20,22 @@ class SyncApplication : KoinComponent {
 
     private val syncTable: SyncTable by inject()
 
-    private val tableToSync = "9123f835-37e4-4c5e-afeb-3c8fb3655f44"
+    private val notionConfigDatabase: NotionConfigDatabase by inject()
+
+    private val todoistManager = TodoistManager()
+
+    private var notionEntries = listOf<Result>()
 
     suspend fun init() {
         syncTable.reloadSyncTable()
 
         //val syncTable = notionRepo.getSyncTable()
-        val notionEntries = notionRepo.getDatabaseEntries(tableToSync, "").results
-        val todoistEntries = todoistRepo.getTodoistEntries()
+        notionEntries = notionRepo.getDatabaseEntries("").results
+//        val todoistEntries = todoistRepo.getTodoistEntries()
 
-        syncEntries(notionEntries, todoistEntries)
+        integrateTodoistUpdates()
+
+        //syncEntries(notionEntries, todoistEntries)
 
 //        val notionIdMapping = notionEntries.associateBy { it.id }
 //        val todoistMappingByNotionId = todoistEntries.associateBy { it.description }
@@ -52,8 +61,71 @@ class SyncApplication : KoinComponent {
 //        }
     }
 
-    private suspend fun syncEntries(notionEntries: List<Result>, todoistEntries: List<Item>) {
+    private suspend fun integrateTodoistUpdates() {
+        val updatesToIntegrate = getTodoistUpdatesToIntegrate()
+        println("Updates to integrate: ${updatesToIntegrate.size}")
 
+        for (update in updatesToIntegrate) {
+            integrateTodoistUpdate(update)
+        }
+    }
+
+    private suspend fun integrateTodoistUpdate(update: Event) {
+        if (update.object_type != "item") {
+            println("Ignore update ${update.id} because eventtype ${update.object_type}")
+            return
+        }
+
+        if (update.event_type == "updated") {
+            println("Processing update event ${update.id}")
+
+            val todoistLastUpdate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").apply { timeZone = TimeZone.getTimeZone("GMT") }.parse(update.event_date)
+            val notionSyncEntry = syncTable.getSyncTable().firstOrNull { it.todoistId == update.object_id }
+            if (notionSyncEntry == null) {
+                println("Can't update notion for ${update.id}. No id in sync table")
+                return
+            }
+
+            val entry = notionEntries.firstOrNull { it.id == notionSyncEntry.notionId }
+            if (entry == null) {
+                println("Can't update notion for ${update.id}. No entry in data table")
+                return
+            }
+
+            val notionLastUpdate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").apply { timeZone = TimeZone.getTimeZone("GMT") }.parse(entry.last_edited_time)
+
+            if (todoistLastUpdate.time > notionLastUpdate.time) {
+                val updatedTimestamp = notionRepo.update(entry.id, update.extra_data.content)
+                println("Applied update ${update.id}")
+
+                syncTable.updateSyncEntry(notionSyncEntry.copy(
+                    todoistLastUpdate = todoistLastUpdate,
+                    notionLastUpdate = Date(updatedTimestamp.time)
+                ))
+                println("Updated sync table for update ${update.id}")
+
+            } else {
+                println("Don't update notion for ${update.id}. Notion update date is newer")
+            }
+
+        }
+    }
+
+    private suspend fun getTodoistUpdatesToIntegrate(): List<Event> {
+        val todoistLastActivityId = notionConfigDatabase.getValue("todoist_last_activity_id")?.toLongOrNull() ?: 0L
+
+        val updates = todoistManager.getUpdatesToProcess(todoistLastActivityId)
+
+        if (updates.isEmpty()) {
+            return listOf()
+        }
+        notionConfigDatabase.setValue("todoist_last_activity_id", updates.maxOf { it.id }.toString())
+
+        return updates
+    }
+
+
+    private suspend fun syncEntries(notionEntries: List<Result>, todoistEntries: List<Item>) {
         val notionIdMapping = notionEntries.associateBy { it.id }
         val todoistIdMapping = todoistEntries.associateBy { it.id }
 
@@ -105,9 +177,6 @@ class SyncApplication : KoinComponent {
                     }
 
                 }
-
-
-
             }
         }
 

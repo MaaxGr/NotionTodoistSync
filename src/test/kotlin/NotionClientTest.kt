@@ -57,14 +57,14 @@ class NotionClientTest {
 //        ))
 
 
-        syncTableImpl.updateSyncEntry(
-            SyncTable.SyncTableEntry(
-                pageId = "9d2b14c2-4cc7-45aa-9ddb-a7ab88a2d823",
-                notionId = "abc update",
-                todoistId = "def update",
-                todoistLastUpdate = Date(System.currentTimeMillis())
-            )
-        )
+//        syncTableImpl.updateSyncEntry(
+//            SyncTable.SyncTableEntry(
+//                pageId = "9d2b14c2-4cc7-45aa-9ddb-a7ab88a2d823",
+//                notionId = "abc update",
+//                todoistId = "def update",
+//                todoistLastUpdate = Date(System.currentTimeMillis())
+//            )
+//        )
 
         //syncTableImpl.deleteSyncEntry("85b03c51-cf16-4074-aabd-8dca29906dcc")
         //syncTableImpl.deleteSyncEntry("57f80fbd-8715-420f-b5ef-08a0d6410557")
