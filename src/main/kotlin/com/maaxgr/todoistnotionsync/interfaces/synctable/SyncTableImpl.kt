@@ -4,14 +4,10 @@ import com.maaxgr.todoistnotionsync.interfaces.notionrepo.NotionRepo
 import org.jraf.klibnotion.client.NotionClient
 import org.jraf.klibnotion.model.base.UuidString
 import org.jraf.klibnotion.model.base.reference.DatabaseReference
-import org.jraf.klibnotion.model.date.Date
 import org.jraf.klibnotion.model.date.DateOrDateRange
 import org.jraf.klibnotion.model.date.DateTime
 import org.jraf.klibnotion.model.date.Timestamp
-import org.jraf.klibnotion.model.property.value.DatePropertyValue
-import org.jraf.klibnotion.model.property.value.PropertyValueList
-import org.jraf.klibnotion.model.property.value.RichTextPropertyValue
-import org.jraf.klibnotion.model.property.value.TitlePropertyValue
+import org.jraf.klibnotion.model.property.value.*
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.text.SimpleDateFormat
@@ -34,15 +30,19 @@ class SyncTableImpl : SyncTable, KoinComponent {
             val props = page.propertyValues
 
             val notionIdProperty = props.first { it.name == "notion_id" } as TitlePropertyValue
-            val todoistProperty = props.first { it.name == "todoist_id" } as RichTextPropertyValue
+            val todoistProperty = props.first { it.name == "todoist_id" } as NumberPropertyValue
             val todoistUpdateTimeProperty = props.firstOrNull { it.name == "todoist_update_time" } as DatePropertyValue?
-            val lastUpdateDate = todoistUpdateTimeProperty?.value?.start?.timestamp
+            val todoistlastUpdateDate = todoistUpdateTimeProperty?.value?.start?.timestamp
+
+            val notionUpdateTimeProperty = props.firstOrNull { it.name == "notion_update_time" } as DatePropertyValue?
+            val notionLastUpdateDate = notionUpdateTimeProperty?.value?.start?.timestamp
 
             SyncTable.SyncTableEntry(
                 pageId = page.id,
                 notionId = notionIdProperty.value.plainText ?: "",
-                todoistId = todoistProperty.value.plainText ?: "",
-                todoistLastUpdate = lastUpdateDate
+                todoistId = todoistProperty.value.toLong(),
+                todoistLastUpdate = todoistlastUpdateDate,
+                notionLastUpdate = notionLastUpdateDate
             )
         }
 
@@ -58,8 +58,9 @@ class SyncTableImpl : SyncTable, KoinComponent {
             parentDatabase = DatabaseReference(syncDatabaseId),
             properties = PropertyValueList()
                 .title("notion_id", values.notionId)
-                .text("todoist_id", values.todoistId)
-                .date("todoist_update_time", DateOrDateRange(DateTime(Timestamp(values.todoistLastUpdate!!.time)), null))
+                .number("todoist_id", values.todoistId)
+                .date("todoist_update_time", DateOrDateRange(DateTime(Timestamp(values.todoistLastUpdate.time)), null))
+                .date("notion_update_time", DateOrDateRange(DateTime(Timestamp(values.notionLastUpdate.time)), null))
         )
 
         syncTable.add(
@@ -67,7 +68,8 @@ class SyncTableImpl : SyncTable, KoinComponent {
                 pageId = createdPage.id,
                 notionId = values.notionId,
                 todoistId = values.todoistId,
-                todoistLastUpdate = null
+                todoistLastUpdate = values.todoistLastUpdate,
+                notionLastUpdate = values.notionLastUpdate
             )
         )
     }
@@ -80,7 +82,7 @@ class SyncTableImpl : SyncTable, KoinComponent {
     override suspend fun updateSyncEntry(values: SyncTable.SyncTableEntry) {
         val propertyList = PropertyValueList()
             .title("notion_id", values.notionId)
-            .text("todoist_id", values.todoistId)
+            .number("todoist_id", values.todoistId)
 
         println(TimeZone.getDefault())
 
@@ -88,7 +90,11 @@ class SyncTableImpl : SyncTable, KoinComponent {
 
 
         values.todoistLastUpdate?.let {
-            propertyList.date("todoist_update_time", DateOrDateRange(DateTime(Timestamp(System.currentTimeMillis())), null))
+            propertyList.date("todoist_update_time", DateOrDateRange(DateTime(Timestamp(it.time)), null))
+        }
+
+        values.notionLastUpdate?.let {
+            propertyList.date("notion_update_time", DateOrDateRange(DateTime(Timestamp(it.time)), null))
         }
 
         notionClient.pages.updatePage(

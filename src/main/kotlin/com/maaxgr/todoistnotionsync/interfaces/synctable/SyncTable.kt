@@ -9,14 +9,16 @@ interface SyncTable {
     data class SyncTableEntry(
         val pageId: String,
         var notionId: String,
-        var todoistId: String,
-        var todoistLastUpdate: Date?
+        var todoistId: Long,
+        var todoistLastUpdate: Date?,
+        var notionLastUpdate: Date?
     )
 
     data class AddSyncTableEntry(
         val notionId: String,
-        val todoistId: String,
-        var todoistLastUpdate: Date
+        val todoistId: Long,
+        var todoistLastUpdate: Date,
+        var notionLastUpdate: Date
     )
 
     suspend fun getSyncTable(): List<SyncTableEntry>

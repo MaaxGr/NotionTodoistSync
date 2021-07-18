@@ -6,9 +6,11 @@ import com.github.kittinunf.fuel.gson.responseObject
 import com.github.kittinunf.result.Result
 import com.maaxgr.todoistnotionsync.interfaces.config.ConfigTodoist
 import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.addtask.AddTaskResponse
+import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.sync.Item
 import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.sync.TodoistSync
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.lang.Exception
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 
@@ -16,15 +18,10 @@ class TodoistRepoImpl : TodoistRepo, KoinComponent {
 
     private val todoistConfig: ConfigTodoist by inject()
 
-    override fun getTodoistUpdates(): TodoistSync {
-        val formData = listOf(
-            "token" to todoistConfig.token,
-            "sync_token" to "*",
-            "resource_types" to "[\"items\"]"
-        )
-
-        val (request, response, result) = Fuel.post("https://api.todoist.com/sync/v8/sync", parameters = formData)
-            .responseObject<TodoistSync>()
+    override fun getTodoistEntries(): List<Item> {
+        val (request, response, result) = Fuel.post("https://api.todoist.com/rest/v1/tasks")
+            .header("Authorization", "Bearer ${todoistConfig.token}")
+            .responseObject<List<Item>>()
 
         when(result) {
             is Result.Success -> {
@@ -36,8 +33,23 @@ class TodoistRepoImpl : TodoistRepo, KoinComponent {
         }
     }
 
-    override fun updateContent(todoistId: Long, content: String): Boolean {
-        //TODO: Don't override complete description!
+    fun getTodoistEntry(id: Long): Item {
+        val (request, response, result) = Fuel.post("https://api.todoist.com/rest/v1/tasks/$id")
+            .header("Authorization", "Bearer ${todoistConfig.token}")
+            .responseObject<Item>()
+
+        when(result) {
+            is Result.Success -> {
+                return result.value
+            }
+            is Result.Failure -> {
+                throw result.error
+            }
+        }
+    }
+
+
+    override fun updateContent(todoistId: Long, content: String): Item {
         val body = mapOf("content" to content)
 
         val (request, response, result) = Fuel.post("https://api.todoist.com/rest/v1/tasks/$todoistId")
@@ -45,7 +57,11 @@ class TodoistRepoImpl : TodoistRepo, KoinComponent {
             .jsonBody(body)
             .response()
 
-        return response.statusCode == 204
+        if (response.statusCode != 204) {
+            throw Exception("Invalid Status Code ${response.statusCode}")
+        }
+
+        return getTodoistEntry(todoistId)
     }
 
     override fun setNotionEntryIdInTodoistEntry(todoistId: Long, notionId: String): Boolean {
@@ -72,8 +88,6 @@ class TodoistRepoImpl : TodoistRepo, KoinComponent {
             .header("Authorization", "Bearer ${todoistConfig.token}")
             .jsonBody(body)
             .responseObject<AddTaskResponse>()
-
-
 
         when(result) {
             is Result.Success -> {

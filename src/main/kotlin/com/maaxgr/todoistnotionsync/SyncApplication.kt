@@ -8,6 +8,7 @@ import com.maaxgr.todoistnotionsync.interfaces.todoistrepo.entities.sync.Item
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.text.SimpleDateFormat
+import java.util.*
 
 class SyncApplication : KoinComponent {
 
@@ -23,7 +24,7 @@ class SyncApplication : KoinComponent {
 
         //val syncTable = notionRepo.getSyncTable()
         val notionEntries = notionRepo.getDatabaseEntries(tableToSync, "").results
-        val todoistEntries = todoistRepo.getTodoistUpdates().items
+        val todoistEntries = todoistRepo.getTodoistEntries()
 
         syncEntries(notionEntries, todoistEntries)
 
@@ -63,18 +64,49 @@ class SyncApplication : KoinComponent {
 
             val syncEntry = syncTableEntry.firstOrNull { it.notionId == notionEntry.id }
 
+            val text = notionEntry.properties.Name.title.firstOrNull()?.plain_text ?: "null"
+
+            val todoistAddResponse = todoistRepo.createEntry(text)
+
+            val todoistLastUpdate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").apply { timeZone = TimeZone.getTimeZone("GMT") }.parse(todoistAddResponse.created)
+            val notionLastUpdate = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").apply { timeZone = TimeZone.getTimeZone("GMT") }.parse(notionEntry.last_edited_time)
+
             if (syncEntry == null) {
-                val todoistAddResponse = todoistRepo.createEntry(notionEntry.properties.Name.title.firstOrNull()?.plain_text ?: "null")
-
-                val created = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").parse(todoistAddResponse.created)
-
                 syncTable.addSyncEntry(
                     SyncTable.AddSyncTableEntry(
                         notionId = notionEntry.id,
-                        todoistId = todoistAddResponse.id.toString(),
-                        todoistLastUpdate = created
+                        todoistId = todoistAddResponse.id,
+                        todoistLastUpdate = todoistLastUpdate,
+                        notionLastUpdate = notionLastUpdate
                     )
                 )
+            } else {
+
+                val todoistEntry = todoistIdMapping[syncEntry.todoistId]
+
+                if (todoistEntry == null) {
+                    syncTable.addSyncEntry(
+                        SyncTable.AddSyncTableEntry(
+                            notionId = notionEntry.id,
+                            todoistId = todoistAddResponse.id,
+                            todoistLastUpdate = todoistLastUpdate,
+                            notionLastUpdate = notionLastUpdate
+                        )
+                    )
+                } else {
+
+                    if (syncEntry.todoistLastUpdate == null || notionLastUpdate.time > syncEntry.todoistLastUpdate!!.time) {
+                        val updatedEntry = todoistRepo.updateContent(syncEntry.todoistId, text)
+                        //val updatedTimestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").apply { timeZone = TimeZone.getTimeZone("GMT") }.parse(updatedEntry)
+
+                        syncTable.updateSyncEntry(
+                            syncEntry.copy()
+                        )
+                    }
+
+                }
+
+
 
             }
         }
