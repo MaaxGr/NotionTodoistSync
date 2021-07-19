@@ -3,6 +3,7 @@ package com.maaxgr.todoistnotionsync
 import com.maaxgr.todoistnotionsync.interfaces.notionconfigdatabase.NotionConfigDatabase
 import com.maaxgr.todoistnotionsync.interfaces.notionrepo.NotionRepo
 import com.maaxgr.todoistnotionsync.interfaces.notionrepo.databasequery.Result
+import com.maaxgr.todoistnotionsync.interfaces.sync.integrator.AddedTodoistItemIntegrator
 import com.maaxgr.todoistnotionsync.interfaces.sync.integrator.CompletedTodoistItemIntegrator
 import com.maaxgr.todoistnotionsync.interfaces.sync.integrator.UncompletedTodoistItemIntegrator
 import com.maaxgr.todoistnotionsync.interfaces.sync.integrator.UpdatedTodoistItemIntegrator
@@ -88,7 +89,7 @@ class SyncApplication : KoinComponent {
             "updated" -> UpdatedTodoistItemIntegrator(update, notionEntries).integrate()
             "completed" -> CompletedTodoistItemIntegrator(update, notionEntries).integrate()
             "uncompleted" -> UncompletedTodoistItemIntegrator(update, notionEntries).integrate()
-            "added" -> UncompletedTodoistItemIntegrator(update, notionEntries).integrate()
+            "added" -> AddedTodoistItemIntegrator(update, notionEntries).integrate()
             else -> println("No integration available for event type '${update.event_type}'")
         }
     }

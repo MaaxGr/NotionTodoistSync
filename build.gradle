@@ -37,7 +37,6 @@ dependencies {
     implementation group: 'org.koin', name: 'koin-core', version: '2.2.2'
 
     // config
-    // config
     implementation 'com.charleskorn.kaml:kaml:0.26.0'
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1"
 

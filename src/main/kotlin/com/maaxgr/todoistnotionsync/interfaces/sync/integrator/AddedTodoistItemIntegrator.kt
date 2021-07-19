@@ -21,15 +21,18 @@ class AddedTodoistItemIntegrator(
     private val syncTableService: SyncTable by inject()
 
     override val integratorName: String
-        get() = "UPDATE_TODOIST_INTEGRATOR"
+        get() = "ADD_TODOIST_INTEGRATOR"
 
     override suspend fun integrate() {
+        log("Processing add event ${event.id}")
+
         val eventDate = event.event_date.asDate(DATE_FORMAT_ISO8601_WITHOUTMS_AND_WITHTS)
+
         val newPage = notionRepo.add(event.extra_data.content)
 
         syncTableService.addSyncEntry(
             SyncTable.AddSyncTableEntry(
-            notionId = newPage.id,
+                notionId = newPage.id,
                 todoistId = event.object_id,
                 todoistLastUpdate = eventDate,
                 notionLastUpdate = eventDate,
