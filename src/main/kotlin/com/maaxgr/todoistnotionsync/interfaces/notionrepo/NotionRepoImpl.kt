@@ -8,7 +8,11 @@ import com.maaxgr.todoistnotionsync.interfaces.config.ConfigNotion
 import com.maaxgr.todoistnotionsync.interfaces.notionrepo.databasequery.DatabaseQuery
 import org.jraf.klibnotion.client.NotionClient
 import org.jraf.klibnotion.model.base.UuidString
+import org.jraf.klibnotion.model.base.reference.DatabaseReference
+import org.jraf.klibnotion.model.date.Date
 import org.jraf.klibnotion.model.date.Timestamp
+import org.jraf.klibnotion.model.page.Page
+import org.jraf.klibnotion.model.pagination.ResultPage
 import org.jraf.klibnotion.model.property.value.PropertyValueList
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -21,20 +25,17 @@ class NotionRepoImpl : NotionRepo, KoinComponent {
     private val tableToSync: UuidString = "9123f835-37e4-4c5e-afeb-3c8fb3655f44"
 
 
-    override fun getDatabaseEntries(queryBody: String): DatabaseQuery {
-        val (request, response, result) = Fuel.post("https://api.notion.com/v1/databases/$tableToSync/query")
-            .header("Notion-Version", "2021-05-13")
-            .header("Authorization", "Bearer ${notionConfig.token}")
-            .jsonBody(queryBody)
-            .responseObject<DatabaseQuery>()
+    fun load() {
 
-        when (result) {
-            is Result.Success -> {
-                return result.get()
-            }
-            is Result.Failure -> {
-                throw result.error
-            }
+    }
+
+
+    override suspend fun getDatabaseEntries(queryBody: String): List<NotionRepo.Entry> {
+        return notionClient.databases.queryDatabase(tableToSync).results.map {
+            NotionRepo.Entry(
+                pageId = it.id,
+                lastEditedTime = it.lastEdited
+            )
         }
     }
 
@@ -44,5 +45,26 @@ class NotionRepoImpl : NotionRepo, KoinComponent {
 
         return response.lastEdited
     }
+
+    override suspend fun check(pageId: UuidString): Timestamp {
+        val response = notionClient.pages.updatePage(pageId, PropertyValueList()
+            .checkbox("Done", true))
+
+        return response.lastEdited
+    }
+
+    override suspend fun uncheck(pageId: UuidString): Timestamp {
+        val response = notionClient.pages.updatePage(pageId, PropertyValueList()
+            .checkbox("Done", false))
+
+        return response.lastEdited
+    }
+
+    override suspend fun add(name: String): Page {
+        return notionClient.pages.createPage(
+            DatabaseReference(tableToSync), PropertyValueList()
+            .title("Name", name))
+    }
+
 
 }
