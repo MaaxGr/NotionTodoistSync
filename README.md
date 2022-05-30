@@ -9,14 +9,6 @@ This project is stale and i have no time to continue this at the moment!
 I am sorry.
 
 
-## Get Updates
-
-To get updates and beta test the application, when its stable enough:
-* Join the discord: https://discord.gg/PCqDZEFcGQ
-* Text me on twitter: https://twitter.com/byCaelis
-* Send me a mail: todoistnotionsync@maax.gr
-
-
 ## ToDo
 
 - [x] Fetch Database Items from Notion  
