@@ -3,6 +3,12 @@
 Sync a notion database with todoist.  
 This project is work in progress. 
 
+## Important Update
+
+This project is stale and i have no time to continue this at the moment!
+I am sorry.
+
+
 ## Get Updates
 
 To get updates and beta test the application, when its stable enough:
